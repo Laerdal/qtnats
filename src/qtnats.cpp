@@ -7,8 +7,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "qtnats.h"
 #include "qtnats_p.h"
 
-#include <opts.h>
-
 #include <QThread>
 #include <QFutureInterface>
 
@@ -27,51 +25,61 @@ void QtNats::checkError(natsStatus s)
     throw Exception(s);
 }
 
-Options::Options()
-{
-    // don't want to include opts.h in qtnats.h
-    timeout = NATS_OPTS_DEFAULT_TIMEOUT;
-    pingInterval = NATS_OPTS_DEFAULT_PING_INTERVAL;
-    maxPingsOut = NATS_OPTS_DEFAULT_MAX_PING_OUT;
-    ioBufferSize = NATS_OPTS_DEFAULT_IO_BUF_SIZE;
-    maxReconnect = NATS_OPTS_DEFAULT_MAX_RECONNECT;
-    reconnectWait = NATS_OPTS_DEFAULT_RECONNECT_WAIT;
-    reconnectBufferSize = NATS_OPTS_DEFAULT_RECONNECT_BUF_SIZE;
-    maxPendingMessages = NATS_OPTS_DEFAULT_MAX_PENDING_MSGS;
-}
-
 static natsOptions* buildNatsOptions(const Options& opts)
 {
     natsOptions* o;
     natsOptions_Create(&o);
 
-    if (opts.servers.size()) {
+    if (!opts.servers.empty())
+    {
         QList<QByteArray> l;
         QVector<const char*> ptrs;
-        for (auto url : opts.servers) {
+        for (const auto& url : opts.servers)
+        {
             // TODO check for invalid URL
             l.append(url.toEncoded());
             ptrs.append(l.last().constData());
         }
-        checkError(natsOptions_SetServers(o, ptrs.data(), static_cast<int>(ptrs.size())));
+        checkError(natsOptions_SetServers(o, ptrs.data(), ptrs.size()));
     }
     checkError(natsOptions_SetUserInfo(o, opts.user.constData(), opts.password.constData()));
     checkError(natsOptions_SetToken(o, opts.token.constData()));
-    checkError(natsOptions_SetNoRandomize(o, !opts.randomize)); //NB! reverted flag
-    checkError(natsOptions_SetTimeout(o, opts.timeout));
+    checkError(natsOptions_SetNoRandomize(o, !opts.randomize)); // NB! reverted flag
+    if (opts.timeout)
+    {
+        checkError(natsOptions_SetTimeout(o, *opts.timeout));
+    }
     checkError(natsOptions_SetName(o, opts.name.constData()));
-    //postpone until I have SSL
-    // natsOptions_SetSecure(o, secure);
+    // TODO: postpone until I have SSL
+    // checkError(natsOptions_SetSecure(o, opts.secure));
     checkError(natsOptions_SetVerbose(o, opts.verbose));
     checkError(natsOptions_SetPedantic(o, opts.pedantic));
-    checkError(natsOptions_SetPingInterval(o, opts.pingInterval));
-    checkError(natsOptions_SetMaxPingsOut(o, opts.maxPingsOut));
+    if (opts.pingInterval)
+    {
+        checkError(natsOptions_SetPingInterval(o, *opts.pingInterval));
+    }
+    if (opts.maxPingsOut)
+    {
+        checkError(natsOptions_SetMaxPingsOut(o, *opts.maxPingsOut));
+    }
     checkError(natsOptions_SetAllowReconnect(o, opts.allowReconnect));
-    checkError(natsOptions_SetMaxReconnect(o, opts.maxReconnect));
-    checkError(natsOptions_SetReconnectWait(o, opts.reconnectWait));
-    checkError(natsOptions_SetReconnectBufSize(o, opts.reconnectBufferSize));
-    checkError(natsOptions_SetMaxPendingMsgs(o, opts.maxPendingMessages));
-    checkError(natsOptions_SetNoEcho(o, !opts.echo));  //NB! reverted flag
+    if (opts.maxReconnect)
+    {
+        checkError(natsOptions_SetMaxReconnect(o, *opts.maxReconnect));
+    }
+    if (opts.reconnectWait)
+    {
+        checkError(natsOptions_SetReconnectWait(o, *opts.reconnectWait));
+    }
+    if (opts.reconnectBufferSize)
+    {
+        checkError(natsOptions_SetReconnectBufSize(o, *opts.reconnectBufferSize));
+    }
+    if (opts.maxPendingMessages)
+    {
+        checkError(natsOptions_SetMaxPendingMsgs(o, *opts.maxPendingMessages));
+    }
+    checkError(natsOptions_SetNoEcho(o, !opts.echo)); // NB! reverted flag
 
     return o;
 }
@@ -92,7 +100,7 @@ Message::Message(natsMsg* msg) noexcept:
     natsStatus s = natsMsgHeader_Keys(msg, &keys, &keyCount);
     if (s != NATS_OK || keyCount == 0)
         return;
-    
+
     // handle message headers
     for (int i = 0; i < keyCount; i++) {
         const char** values = nullptr;
@@ -101,7 +109,7 @@ Message::Message(natsMsg* msg) noexcept:
         if (s != NATS_OK)
             continue;
         QByteArray key (keys[i]);
-        
+
         for (int j = 0; j < valueCount; j++) {
             QByteArray value (values[j]);
             headers.insert(key, value);
@@ -115,7 +123,7 @@ Message::Message(natsMsg* msg) noexcept:
 NatsMsgPtr QtNats::toNatsMsg(const Message& msg, const char* reply)
 {
     natsMsg* cnatsMsg;
-    
+
     const char* realReply = nullptr; //in asyncRequest I need to provide my own reply
     if (reply) {
         realReply = reply;
@@ -130,7 +138,7 @@ NatsMsgPtr QtNats::toNatsMsg(const Message& msg, const char* reply)
         msg.data.constData(),
         msg.data.size()
     ));
-    
+
     NatsMsgPtr msgPtr(cnatsMsg, &natsMsg_Destroy);
 
     auto i = msg.headers.constBegin();
@@ -142,7 +150,7 @@ NatsMsgPtr QtNats::toNatsMsg(const Message& msg, const char* reply)
 
 void QtNats::subscriptionCallback(natsConnection* /*nc*/, natsSubscription* /*sub*/, natsMsg* msg, void* closure) {
     Subscription* sub = reinterpret_cast<Subscription*>(closure);
-    
+
     Message m(msg);
     emit sub->received(m);
 }
@@ -220,6 +228,9 @@ void Client::connectToServer(const Options& opts)
     natsOptions_SetDisconnectedCB(nats_opts, &disconnectedHandler, this);
     natsOptions_SetReconnectedCB(nats_opts, &reconnectedHandler, this);
 
+    // TODO: Auth
+    natsOptions_SetUserCredentialsFromFiles(nats_opts, "/home/oleksandr-radchenko/.local/share/nats/nsc/keys/creds/MyOperator/SYS/MyUser.creds", nullptr);
+
     emit statusChanged(ConnectionStatus::Connecting);
     checkError(natsConnection_Connect(&m_conn, nats_opts));
     emit statusChanged(ConnectionStatus::Connected);
@@ -268,7 +279,7 @@ QFuture<Message> Client::asyncRequest(const Message& msg, qint64 timeout)
     QByteArray inbox = Client::newInbox();
 
     natsSubscription* subscription = nullptr;
-    
+
     checkError(natsConnection_SubscribeTimeout(&subscription, m_conn, inbox.constData(), timeout, &asyncRequestCallback, future_iface.get()));
     checkError(natsSubscription_AutoUnsubscribe(subscription, 1));
     // can't do msg.reply = inbox; publish(msg); because "msg" is constant

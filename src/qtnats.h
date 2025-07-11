@@ -17,7 +17,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <QMultiHash>
 #include <QSemaphore>
 
-#include <nats.h>
+#include <nats/nats.h>
 
 #include "qtnats_export.h"
 
@@ -78,22 +78,22 @@ namespace QtNats {
         QByteArray password;
         QByteArray token;
         bool randomize = true; //NB! reverted option
-        qint64 timeout;
+        std::optional<qint64> timeout;
         QByteArray name;
         bool secure = false;
         bool verbose = false;
         bool pedantic = false;
-        qint64 pingInterval;
-        int maxPingsOut;
-        int ioBufferSize;
+        std::optional<qint64> pingInterval;
+        std::optional<int> maxPingsOut;
+        std::optional<int> ioBufferSize;
         bool allowReconnect = true;
-        int maxReconnect;
-        qint64 reconnectWait;
-        int reconnectBufferSize;
-        int maxPendingMessages;
+        std::optional<int> maxReconnect;
+        std::optional<qint64> reconnectWait;
+        std::optional<int> reconnectBufferSize;
+        std::optional<int> maxPendingMessages;
         bool echo = true; //NB! reverted option
 
-        Options();
+        Options() = default;
     };
 
     struct QTNATS_EXPORT Message
