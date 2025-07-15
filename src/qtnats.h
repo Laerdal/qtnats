@@ -134,9 +134,7 @@ namespace QtNats
 
     struct QTNATS_EXPORT Message
     {
-        Message()
-        {
-        }
+        Message() = default;
 
         Message(const QByteArray& in_subject, const QByteArray& in_data):
             subject(in_subject),
@@ -148,7 +146,7 @@ namespace QtNats
 
         bool isIncoming() const
         {
-            return bool(m_natsMsg);
+            return m_natsMsg != nullptr;
         }
 
         // JetStream acknowledgments

@@ -19,7 +19,7 @@ add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
 find_package(Qt5 5.15 REQUIRED COMPONENTS Core)
 find_library(nats_library nats REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} ${nats_library} Qt::Core)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${nats_library} Qt::Core)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_LIST_DIR}/src)
 
 # this has no effect on Windows due to https://gitlab.kitware.com/cmake/cmake/-/issues/19618
