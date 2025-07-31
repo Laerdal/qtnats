@@ -252,10 +252,6 @@ void Client::connectToServer(const Options& opts)
     natsOptions_SetDisconnectedCB(nats_opts, &disconnectedHandler, this);
     natsOptions_SetReconnectedCB(nats_opts, &reconnectedHandler, this);
 
-    // TODO: Auth
-    natsOptions_SetUserCredentialsFromFiles(
-        nats_opts, "/home/oleksandr-radchenko/.local/share/nats/nsc/keys/creds/MyOperator/SYS/MyUser.creds", nullptr);
-
     emit statusChanged(ConnectionStatus::Connecting);
     checkError(natsConnection_Connect(&m_conn, nats_opts));
     emit statusChanged(ConnectionStatus::Connected);
