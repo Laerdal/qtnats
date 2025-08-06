@@ -1,7 +1,9 @@
 /* Copyright(c) 2021-2022 Petro Kazmirchuk https://github.com/Kazmirchuk
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.You may obtain a copy of the License at http ://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.See the License for the specific language governing permissions and  limitations under the License.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.You may
+obtain a copy of the License at http ://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied.See the License for the specific language governing permissions and  limitations under the License.
 */
 
 #pragma once
@@ -11,19 +13,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <QObject>
 // I've received the clarification that Latin-1 should be used everywhere for strings, so QByteArray is clearer API than QString
 // https://github.com/nats-io/nats.c/issues/573
+#include <nats/nats.h>
+
 #include <QByteArray>
 #include <QFuture>
-#include <QUrl>
 #include <QMultiHash>
 #include <QSemaphore>
-
-#include <nats.h>
+#include <QUrl>
 
 #include "qtnats_export.h"
 
-namespace QtNats {
+namespace QtNats
+{
 
-    QTNATS_EXPORT Q_NAMESPACE  //we need the "export" directive due to https://bugreports.qt.io/browse/QTBUG-68014
+    QTNATS_EXPORT Q_NAMESPACE // we need the "export" directive due to https://bugreports.qt.io/browse/QTBUG-68014
 
     using MessageHeaders = QMultiHash<QByteArray, QByteArray>;
 
@@ -45,11 +48,25 @@ namespace QtNats {
     class Exception : public QException
     {
     public:
-        Exception(natsStatus s) : errorCode(s) {}
+        Exception(natsStatus s):
+            errorCode(s)
+        {
+        }
 
-        void raise() const override { throw* this; }
-        Exception* clone() const override { return new Exception(*this); }
-        const char* what() const noexcept override { return natsStatus_GetText(errorCode); }
+        void raise() const override
+        {
+            throw *this;
+        }
+
+        Exception* clone() const override
+        {
+            return new Exception(*this);
+        }
+
+        const char* what() const noexcept override
+        {
+            return natsStatus_GetText(errorCode);
+        }
 
         const natsStatus errorCode;
     };
@@ -57,17 +74,36 @@ namespace QtNats {
     class JetStreamException : public Exception
     {
     public:
-        JetStreamException(natsStatus s, jsErrCode js) : Exception(s), jsError(js), errorText(initText(js)) {}
-        void raise() const override { throw* this; }
-        JetStreamException* clone() const override { return new JetStreamException(*this); }
-        const char* what() const noexcept override { return errorText.constData(); }
+        JetStreamException(natsStatus s, jsErrCode js):
+            Exception(s),
+            jsError(js),
+            errorText(initText(js))
+        {
+        }
+
+        void raise() const override
+        {
+            throw *this;
+        }
+
+        JetStreamException* clone() const override
+        {
+            return new JetStreamException(*this);
+        }
+
+        const char* what() const noexcept override
+        {
+            return errorText.constData();
+        }
 
         const jsErrCode jsError;
 
     private:
-        QByteArray initText(jsErrCode js) {
+        QByteArray initText(jsErrCode js)
+        {
             return QString("%1: %2").arg(Exception::what()).arg(js).toLatin1();
         }
+
         const QByteArray errorText;
     };
 
@@ -77,38 +113,47 @@ namespace QtNats {
         QByteArray user;
         QByteArray password;
         QByteArray token;
-        bool randomize = true; //NB! reverted option
-        qint64 timeout;
+        bool randomize = true; // NB! reverted option
+        std::optional<qint64> timeout;
         QByteArray name;
         bool secure = false;
         bool verbose = false;
         bool pedantic = false;
-        qint64 pingInterval;
-        int maxPingsOut;
-        int ioBufferSize;
+        std::optional<qint64> pingInterval;
+        std::optional<int> maxPingsOut;
+        std::optional<int> ioBufferSize;
         bool allowReconnect = true;
-        int maxReconnect;
-        qint64 reconnectWait;
-        int reconnectBufferSize;
-        int maxPendingMessages;
-        bool echo = true; //NB! reverted option
+        std::optional<int> maxReconnect;
+        std::optional<qint64> reconnectWait;
+        std::optional<int> reconnectBufferSize;
+        std::optional<int> maxPendingMessages;
+        bool echo = true; // NB! reverted option
 
-        Options();
+        Options() = default;
     };
 
     struct QTNATS_EXPORT Message
     {
-        Message() {}
-        Message(const QByteArray& in_subject, const QByteArray& in_data) : subject(in_subject), data(in_data) {}
+        Message() = default;
+
+        Message(const QByteArray& in_subject, const QByteArray& in_data):
+            subject(in_subject),
+            data(in_data)
+        {
+        }
+
         explicit Message(natsMsg* cmsg) noexcept;
-        bool isIncoming() const { return bool(m_natsMsg); }
+
+        bool isIncoming() const
+        {
+            return m_natsMsg != nullptr;
+        }
 
         // JetStream acknowledgments
         void ack();
-        void nack(qint64 delay = -1); //ms
+        void nack(qint64 delay = -1); // ms
         void inProgress();
         void terminate();
-
 
         QByteArray subject;
         QByteArray reply;
@@ -116,14 +161,14 @@ namespace QtNats {
         // NB! 1. headers are case-sensitive
         // 2. cnats does NOT preserve the order of headers
         MessageHeaders headers;
-        
+
     private:
         std::shared_ptr<natsMsg> m_natsMsg;
     };
 
     class Subscription;
     class JetStream;
-    
+
     struct JsOptions
     {
         // QString prefix = "$JS.API"; don't think it's a good idea to change this?
@@ -135,17 +180,17 @@ namespace QtNats {
     {
         Q_OBJECT
         Q_DISABLE_COPY(Client)
-        
+
     public:
         explicit Client(QObject* parent = nullptr);
         ~Client() noexcept override;
         Client(Client&&) = delete;
         Client& operator=(Client&&) = delete;
-        
+
         void connectToServer(const Options& opts);
         void connectToServer(const QUrl& address);
         void close() noexcept;
-        
+
         void publish(const Message& msg);
 
         Message request(const Message& msg, qint64 timeout = 2000);
@@ -154,8 +199,8 @@ namespace QtNats {
         Subscription* subscribe(const QByteArray& subject);
         Subscription* subscribe(const QByteArray& subject, const QByteArray& queueGroup);
 
-        bool ping(qint64 timeout = 10000) noexcept; //ms
-        
+        bool ping(qint64 timeout = 10000) noexcept; // ms
+
         QUrl currentServer() const;
         ConnectionStatus status() const;
         QString errorString() const;
@@ -164,7 +209,10 @@ namespace QtNats {
 
         JetStream* jetStream(const JsOptions& options = JsOptions());
 
-        natsConnection* getNatsConnection() const { return m_conn; }
+        natsConnection* getNatsConnection() const
+        {
+            return m_conn;
+        }
 
     signals:
         void errorOccurred(natsStatus error, const QString& text);
@@ -176,7 +224,7 @@ namespace QtNats {
 
         static void closedConnectionHandler(natsConnection* nc, void* closure);
     };
-    
+
     class QTNATS_EXPORT Subscription : public QObject
     {
         Q_OBJECT
@@ -191,7 +239,10 @@ namespace QtNats {
         void received(const Message& message);
 
     private:
-        Subscription(QObject* parent) : QObject(parent) {}
+        Subscription(QObject* parent):
+            QObject(parent)
+        {
+        }
 
         natsSubscription* m_sub = nullptr;
         friend class Client;
@@ -232,7 +283,10 @@ namespace QtNats {
         QList<Message> fetch(int batch = 1, qint64 timeout = 5000);
 
     private:
-        PullSubscription(QObject* parent) : QObject(parent) {}
+        PullSubscription(QObject* parent):
+            QObject(parent)
+        {
+        }
 
         natsSubscription* m_sub = nullptr;
         friend class JetStream;
@@ -258,23 +312,28 @@ namespace QtNats {
         Subscription* subscribe(const QByteArray& subject, const QByteArray& stream, const QByteArray& consumer);
         PullSubscription* pullSubscribe(const QByteArray& subject, const QByteArray& stream, const QByteArray& consumer);
 
-        jsCtx* getJsContext() const { return m_jsCtx; }
-        
+        jsCtx* getJsContext() const
+        {
+            return m_jsCtx;
+        }
+
     signals:
         void errorOccurred(natsStatus error, jsErrCode jsErr, const QString& text, const Message& msg);
 
     private:
-        JetStream(QObject* parent) : QObject(parent) {}
+        JetStream(QObject* parent):
+            QObject(parent)
+        {
+        }
 
         jsCtx* m_jsCtx = nullptr;
-        
+
         JsPublishAck doPublish(const Message& msg, jsPubOptions* opts);
         void doAsyncPublish(const Message& msg, jsPubOptions* opts);
 
         friend class Client;
     };
 
-    
-}
+} // namespace QtNats
 
 Q_DECLARE_METATYPE(QtNats::Message)
