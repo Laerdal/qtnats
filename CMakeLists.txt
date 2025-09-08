@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22.3)
 
 project(QtNats VERSION 0.1.0)
 
@@ -21,6 +21,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Core)
 
 find_library(nats_library nats REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${nats_library})
+get_filename_component(NATS_LIB_DIR  "${nats_library}" DIRECTORY)
+get_filename_component(NATS_LIB_NAME "${nats_library}" NAME)
+file(GLOB NATS_LIB_VARIANTS "${NATS_LIB_DIR}/${NATS_LIB_NAME}*")
+install(FILES ${NATS_LIB_VARIANTS} DESTINATION ${vs_lib_path} PERMISSIONS ${install_permissions})
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_LIST_DIR}/src)
 
@@ -30,6 +34,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVE
 include(GenerateExportHeader)
 GENERATE_EXPORT_HEADER(${PROJECT_NAME})
 
+install(TARGETS ${PROJECT_NAME} DESTINATION ${vs_lib_path} PERMISSIONS ${install_permissions})
 
 # ------------- unit tests ----------------------
 if (BUILD_TESTING)
