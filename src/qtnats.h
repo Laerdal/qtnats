@@ -9,6 +9,7 @@ implied.See the License for the specific language governing permissions and  lim
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include <QObject>
 // I've received the clarification that Latin-1 should be used everywhere for strings, so QByteArray is clearer API than QString
