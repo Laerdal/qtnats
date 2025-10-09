@@ -21,10 +21,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Core)
 
 find_library(nats_library nats REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${nats_library})
-get_filename_component(NATS_LIB_DIR  "${nats_library}" DIRECTORY)
-get_filename_component(NATS_LIB_NAME "${nats_library}" NAME)
-file(GLOB NATS_LIB_VARIANTS "${NATS_LIB_DIR}/${NATS_LIB_NAME}*")
-install(FILES ${NATS_LIB_VARIANTS} DESTINATION ${vs_lib_path} PERMISSIONS ${install_permissions})
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_LIST_DIR}/src)
 
