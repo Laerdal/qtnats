@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22.3)
 
 project(QtNats VERSION 0.1.0)
 
@@ -30,6 +30,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVE
 include(GenerateExportHeader)
 GENERATE_EXPORT_HEADER(${PROJECT_NAME})
 
+install(TARGETS ${PROJECT_NAME} DESTINATION ${vs_lib_path} PERMISSIONS ${install_permissions})
 
 # ------------- unit tests ----------------------
 if (BUILD_TESTING)
