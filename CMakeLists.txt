@@ -30,7 +30,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVE
 include(GenerateExportHeader)
 GENERATE_EXPORT_HEADER(${PROJECT_NAME})
 
-install(TARGETS ${PROJECT_NAME} DESTINATION ${vs_lib_path} PERMISSIONS ${install_permissions})
+if (NOT yocto)
+    install(TARGETS ${PROJECT_NAME} DESTINATION ${vs_lib_path} PERMISSIONS ${install_permissions})
+endif()
 
 # ------------- unit tests ----------------------
 if (BUILD_TESTING)
