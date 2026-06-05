@@ -30,8 +30,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVE
 include(GenerateExportHeader)
 GENERATE_EXPORT_HEADER(${PROJECT_NAME})
 
-install(TARGETS ${PROJECT_NAME} DESTINATION ${vs_lib_path} PERMISSIONS ${install_permissions})
-
 # ------------- unit tests ----------------------
 if (BUILD_TESTING)
     enable_testing()
