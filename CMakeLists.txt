@@ -30,7 +30,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVE
 include(GenerateExportHeader)
 GENERATE_EXPORT_HEADER(${PROJECT_NAME})
 
-install_shared_library(${PROJECT_NAME} QtNats NO_HEADERS NO_EXPORT)
+install_shared_library(${PROJECT_NAME} QtNats NO_HEADERS)
 
 # ------------- unit tests ----------------------
 if (BUILD_TESTING)
